@@ -16,13 +16,14 @@ char username[MAX_NAME_LEN + 1];
 char inbuf[BUFLEN + 1];
 char outbuf[MAX_MSG_LEN + 1];
 
-
+/*Part 4.1*/
 int handle_stdin() {
     /* TODO */
 }
-
+/*Part 4.2*/
 int handle_client_socket() {
     /* TODO */
+
 }
 
 int main(int argc, char **argv) {
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
         goto END;
     }
     struct sockaddr_int server_addr;
-    socklen_t addrlen = sizeof(struct sockaddder_in);
+    socklen_t addrlen = sizeof(struct sockaddder_in); // New Type
     char *addr_str = argv[1];
 
     ip_conversion = inet_pton(AF_INET, addr_str, &server_addr);
@@ -50,7 +51,7 @@ int main(int argc, char **argv) {
     memset(&server_addr, 0, addrlen);
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = argv[2];
+    server_addr.sin_port = htons(argv[2]);//Converts to Big-Endian notation
 
     username[MAX_NAME_LEN + 1] = NULL;
     while (1){//Ask user for username
@@ -67,7 +68,36 @@ int main(int argc, char **argv) {
     }
     printf("Hello, %s. Let's try to connect to the server.\n", username);
     
-    
+    if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
+        fprintf(stderr, "Error: Failed to create socket %s.\n", strerror(errno));
+        retval = EXIT_FAILURE;
+        goto END;
+    }
+
+    if ((connect(client_socket, (struct sockaddr *)&server_addr, addrlen))){
+        fprintf(stderr, "Error: Failed to connect to the server %s.\n", strerror(errno));
+        retval = EXIT_FAILURE;
+        goto END;
+    }
+
+    int bytes_read;
+    if ((bytes_read = recv(client_socket, inbuf, (sizeof(inbuf) - 1), 0)) < 0){
+        fprintf(stderr, "Error: Failed to receive welcome message %s.\n", strerror(errno));
+        retval = EXIT_FAILURE;
+        goto END;
+    }else if(bytes_read == 0) {
+        fprintf(stderr, "Error: Server closed the connection %s.\n", strerror(errno));
+        retval = EXIT_FAILURE;
+        goto END;
+    }
+    inbuf[sizeof(inbuf)] == 0;
+    printf("\n%s\n\n", inbuf);
+
+    if (send(client_socket, username, sizeof(username), 0) < 0){
+        fprintf(stderr, "Error: Username failed to send %s.\n", strerror(errno));
+        retval = EXIT_FAILURE;
+        goto END;
+    }
 
 END:
     return retval;
