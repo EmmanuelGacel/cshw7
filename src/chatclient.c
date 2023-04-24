@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
     server_addr.sin_port = argv[2];
 
     username[MAX_NAME_LEN + 1] = NULL;
-    while (1){
+    while (1){//Ask user for username
         printf("Please enter a username");
         if (read(stdin, &username, sizeof(username) - 1)){
             fprintf(stderr, "Error: Failed to read user input.\n",strerror(errno));
