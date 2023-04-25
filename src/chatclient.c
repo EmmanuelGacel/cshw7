@@ -7,8 +7,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include "util.h"
-//AP server userID: 1120
-//userID Equation: 1000 * x * 12
+//AP server userID: Emmanuel: 1120 Katie: 1362
+//userID Equation: (1000 * x) + (120 OR 362)
 int client_socket = -1;
 int ip_conversion;
 int retval = EXIT_SUCCESS;
@@ -18,12 +18,13 @@ char outbuf[MAX_MSG_LEN + 1];
 
 /*Part 4.1*/
 int handle_stdin() {
-    /* TODO */
+    /* TODO * */
+	return 1;
 }
 /*Part 4.2*/
 int handle_client_socket() {
     /* TODO */
-
+	return 1;
 }
 
 int main(int argc, char **argv) {
@@ -33,8 +34,8 @@ int main(int argc, char **argv) {
         retval = EXIT_FAILURE;
         goto END;
     }
-    struct sockaddr_int server_addr;
-    socklen_t addrlen = sizeof(struct sockaddder_in); // New Type
+    struct sockaddr_in server_addr;
+    socklen_t addrlen = sizeof(struct sockaddr_in); //New type
     char *addr_str = argv[1];
 
     ip_conversion = inet_pton(AF_INET, addr_str, &server_addr);
@@ -51,19 +52,19 @@ int main(int argc, char **argv) {
     memset(&server_addr, 0, addrlen);
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(argv[2]);//Converts to Big-Endian notation
+    server_addr.sin_port = htons(atoi(argv[2]));//Converts to Big-Endian notation
 
-    username[MAX_NAME_LEN + 1] = NULL;
+    username[MAX_NAME_LEN + 1] = '\0';
     while (1){//Ask user for username
         printf("Please enter a username");
-        if (read(stdin, &username, sizeof(username) - 1)){
-            fprintf(stderr, "Error: Failed to read user input.\n",strerror(errno));
+        if (read(STDIN_FILENO, &username, sizeof(username) - 1)){
+            fprintf(stderr, "Error: Failed to read user input.%s.\n",strerror(errno));
             retval = EXIT_FAILURE;
             goto END;
-        } else if(username [MAX_NAME_LEN + 1] != NULL){
+        } else if(username [MAX_NAME_LEN + 1] != '\0'){
             fprintf(stderr, "Sorry, limit your username to %d characters.\n.\n", MAX_NAME_LEN);
         } else if(strlen(username) < 1){
-            fprintf(stderr, "Sorry, your username is too short.\n",strerror(errno));
+            fprintf(stderr, "Sorry, your username is too short.%s.\n",strerror(errno));
         }else break;
     }
     printf("Hello, %s. Let's try to connect to the server.\n", username);
@@ -90,7 +91,7 @@ int main(int argc, char **argv) {
         retval = EXIT_FAILURE;
         goto END;
     }
-    inbuf[sizeof(inbuf)] == 0;
+    inbuf[sizeof(inbuf)] = 0;
     printf("\n%s\n\n", inbuf);
 
     if (send(client_socket, username, sizeof(username), 0) < 0){
