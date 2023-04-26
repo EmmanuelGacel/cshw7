@@ -56,8 +56,8 @@ int main(int argc, char **argv) {
 
     username[MAX_NAME_LEN + 1] = '\0';
     while (1){//Ask user for username
-        printf("Please enter a username");
-        if (read(STDIN_FILENO, &username, sizeof(username) - 1)){
+        printf("Please enter a username\n");
+        if (read(STDIN_FILENO, &username, sizeof(username) - 1) < 0){
             fprintf(stderr, "Error: Failed to read user input.%s.\n",strerror(errno));
             retval = EXIT_FAILURE;
             goto END;
