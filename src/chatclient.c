@@ -44,10 +44,10 @@ int handle_stdin() {
     
     int len = strlen(message);
    
-   
     if (message[len - 1] == '\n') {
         message[len - 1] = '\0';
     }
+    
     // check if message is too long
     if (len >= MAX_MSG_LEN) {
         fprintf(stderr, "Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
@@ -67,6 +67,7 @@ int handle_stdin() {
             close(client_socket);
             exit(EXIT_SUCCESS);
         }
+        //fflush(stdout); //make sure the server prints it
     }
     return retval;
 }
@@ -83,6 +84,7 @@ int handle_client_socket() {
     }
 
     //read the data into inbuf
+    inbuf[0] = '\0'; //clear out inbuf
     ssize_t num_bytes = read(acc, inbuf, sizeof(inbuf));
     if (num_bytes < 0 && errno != EINTR) {
         fprintf(stderr, "Warning: Failed to receive incoming message.\n");
@@ -147,17 +149,23 @@ int main(int argc, char **argv) {
     server_addr.sin_port = htons(atoi(argv[2]));//Converts to Big-Endian notation
 
     username[MAX_NAME_LEN + 1] = '\0';
+    
     while (1){//Ask user for username
-        printf("Please enter a username\n");
-        if (read(STDIN_FILENO, &username, sizeof(username) - 1) < 0){
-            fprintf(stderr, "Error: Failed to read user input.%s.\n",strerror(errno));
-            retval = EXIT_FAILURE;
-            goto END;
-        } else if(username [MAX_NAME_LEN + 1] != '\0'){
-            fprintf(stderr, "Sorry, limit your username to %d characters.\n.\n", MAX_NAME_LEN);
-        } else if(strlen(username) < 1){
-            fprintf(stderr, "Sorry, your username is too short.%s.\n",strerror(errno));
-        }else break;
+    
+    	printf("Please enter a username: ");
+   	if (scanf("%s", username) != 1) {
+        	fprintf(stderr, "Error: Failed to read user input.\n");
+        	retval = EXIT_FAILURE;
+        	goto END;
+   	} else if (strlen(username) > MAX_NAME_LEN) {
+        	fprintf(stderr, "Sorry, limit your username to %d characters.\n", MAX_NAME_LEN);
+        	continue; //ask for another username
+    	} else if (strlen(username) < 1) {
+        	fprintf(stderr, "Sorry, your username is too short.\n");
+        	continue; //ask for another username
+    	} 
+        break;
+
     }
     char *eoln = strchr(username, '\n'); //fixed bug, usernames contained newlines
     if(eoln != NULL){
@@ -203,7 +211,8 @@ int main(int argc, char **argv) {
     FD_SET(STDIN_FILENO, &readfds);
     
     while (1){
-    	
+    
+    	printf("[%s]:", username);
     	//check for initial errors on both
     	if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0) {
             fprintf(stderr,"Error: Unable to wait for activity. %s.\n", strerror(errno));
@@ -214,14 +223,13 @@ int main(int argc, char **argv) {
         //activity on STDIN_FILENO
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
         	handle_stdin();
-        	//printf("INBUF: %s. \n", inbuf);
         }
         
         //activity on the socket
         if (FD_ISSET(client_socket, &readfds)) {
         	handle_client_socket();
         }
-    
+    	
     }
     
     END:
