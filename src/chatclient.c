@@ -40,14 +40,14 @@ int handle_stdin() {
         exit(EXIT_FAILURE);
     }
 
-    // Should we be removing the newline?
+    // remove the newline
     
     int len = strlen(message);
-    /*
+   
+   
     if (message[len - 1] == '\n') {
         message[len - 1] = '\0';
     }
-    **/
     // check if message is too long
     if (len >= MAX_MSG_LEN) {
         fprintf(stderr, "Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
@@ -159,6 +159,10 @@ int main(int argc, char **argv) {
             fprintf(stderr, "Sorry, your username is too short.%s.\n",strerror(errno));
         }else break;
     }
+    char *eoln = strchr(username, '\n'); //fixed bug, usernames contained newlines
+    if(eoln != NULL){
+        *eoln = '\0'; //overwrite newline
+    }
     printf("Hello, %s. Let's try to connect to the server.\n", username);
     
     if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
@@ -200,7 +204,7 @@ int main(int argc, char **argv) {
     
     while (1){
     	
-    	//check for initial errors
+    	//check for initial errors on both
     	if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0) {
             fprintf(stderr,"Error: Unable to wait for activity. %s.\n", strerror(errno));
             retval = EXIT_FAILURE;
@@ -210,6 +214,7 @@ int main(int argc, char **argv) {
         //activity on STDIN_FILENO
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
         	handle_stdin();
+        	//printf("INBUF: %s. \n", inbuf);
         }
         
         //activity on the socket
