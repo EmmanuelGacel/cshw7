@@ -37,12 +37,13 @@ int handle_stdin() {
     // read input from the user
     if (fgets(message, MAX_MSG_LEN, stdin) == NULL) {
         fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     }
 
     // remove the newline
     
     int len = strlen(message);
+   
    
     if (message[len - 1] == '\n') {
         message[len - 1] = '\0';
@@ -69,18 +70,18 @@ int handle_stdin() {
         }
         //fflush(stdout); //make sure the server prints it
     }
-    return retval;
+    return EXIT_SUCCESS;
 }
 /*Part 4.2*/
 int handle_client_socket() {
    	
-    printf("Inside socket connections\n");
+    //printf("Inside socket connections\n");
 
     // accept the incoming connection
     int acc = accept(client_socket, NULL, NULL);
     if (acc < 0) {
     	fprintf(stderr, "Error: Unable to accept the incoming connection. %s.\n", strerror(errno));
-    	exit(EXIT_FAILURE);
+    	return EXIT_FAILURE;
     }
 
     //read the data into inbuf
@@ -90,7 +91,7 @@ int handle_client_socket() {
         fprintf(stderr, "Warning: Failed to receive incoming message.\n");
     } else if (num_bytes == 0) {
         fprintf(stderr, "\nConnection to server has been lost.\n");
-        exit(EXIT_FAILURE);
+        return EXIT_FAILURE;
     } else {
         // print the message from the server
         inbuf[num_bytes] = '\0';
@@ -106,7 +107,7 @@ int handle_client_socket() {
     // close the connection
     close(acc);
     
-    return retval;
+    return EXIT_SUCCESS;
 }
 
 int main(int argc, char **argv) {
@@ -153,7 +154,8 @@ int main(int argc, char **argv) {
     while (1){//Ask user for username
     
     	printf("Please enter a username: ");
-   	if (scanf("%s", username) != 1) {
+    	fflush(stdout); //makes sure its displayed before the read since theres no newline
+   	if (read(STDIN_FILENO, &username, sizeof(username) - 1) < 0) {
         	fprintf(stderr, "Error: Failed to read user input.\n");
         	retval = EXIT_FAILURE;
         	goto END;
@@ -171,7 +173,8 @@ int main(int argc, char **argv) {
     if(eoln != NULL){
         *eoln = '\0'; //overwrite newline
     }
-    printf("Hello, %s. Let's try to connect to the server.\n", username);
+    
+    printf("\nHello, %s. Let's try to connect to the server.\n", username);
     
     if ((client_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
         fprintf(stderr, "Error: Failed to create socket %s.\n", strerror(errno));
@@ -205,29 +208,37 @@ int main(int argc, char **argv) {
     }
     
     //setting up the fd set
+    
     fd_set readfds;
-    FD_ZERO(&readfds);
-    FD_SET(client_socket, &readfds);
-    FD_SET(STDIN_FILENO, &readfds);
-    
     while (1){
-    
+    	
+    	FD_ZERO(&readfds);
+    	FD_SET(client_socket, &readfds);
+    	FD_SET(STDIN_FILENO, &readfds);
+    	
     	printf("[%s]:", username);
+    	fflush(stdout); //makes sure it prints since theres no newline
     	//check for initial errors on both
     	if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0) {
-            fprintf(stderr,"Error: Unable to wait for activity. %s.\n", strerror(errno));
+            fprintf(stderr,"Error: select() failed. %s.\n", strerror(errno));
             retval = EXIT_FAILURE;
             goto END;
         }
         
         //activity on STDIN_FILENO
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
-        	handle_stdin();
+        	if(handle_stdin() == EXIT_FAILURE){
+        		retval = EXIT_FAILURE;
+        		goto END;
+        	}
         }
         
         //activity on the socket
         if (FD_ISSET(client_socket, &readfds)) {
-        	handle_client_socket();
+        	if(handle_client_socket() == EXIT_FAILURE){
+        		retval = EXIT_FAILURE;
+        		goto END;
+        	}	
         }
     	
     }
