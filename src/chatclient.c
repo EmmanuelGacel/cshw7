@@ -165,8 +165,8 @@ int main(int argc, char **argv) {
         	continue; //ask for another username
     	} 
         break;
-
     }
+    
     char *eoln = strchr(username, '\n'); //fixed bug, usernames contained newlines
     if(eoln != NULL){
         *eoln = '\0'; //overwrite newline
