@@ -31,6 +31,7 @@ void catch_signal(int sig) {
 
 /*Part 4.1*/
 int handle_stdin() {
+/**
     outbuf[MAX_MSG_LEN] = '\0';
     while (true){
         //int i = 0;
@@ -42,7 +43,7 @@ int handle_stdin() {
         fflush(stdin);
         
         
-        /*
+        /START
         while((ch = getc(stdin) != '\n') && (i < MAX_MSG_LEN)){
              printf("Character: %c\n", ch);
              printf("Decimal: %d\n", ch);
@@ -68,7 +69,7 @@ int handle_stdin() {
                outbuf[i++] = ch;
             }
         }
-        */
+        //END
         if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
             fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
             return EXIT_FAILURE;
@@ -93,7 +94,6 @@ int handle_stdin() {
 
     }
 
-/*
     char message[MAX_MSG_LEN];
     memset(message, 0, MAX_MSG_LEN);
 
@@ -137,8 +137,66 @@ int handle_stdin() {
     }
     printf("\n----------MADE IT: 3----------\n");
     return EXIT_SUCCESS;
-    */
+
+    
+    
+    outbuf[MAX_MSG_LEN] = '\0';
+    //int first_line = 1;
+    char username[MAX_NAME_LEN + 1];
+
+    // Read username from first line
+    if (fgets(username, MAX_NAME_LEN + 1, stdin) == NULL) {
+        fprintf(stderr, "Error: Failed to read username. %s.\n", strerror(errno));
+        return EXIT_FAILURE;
+    }
+    
+    username[strcspn(username, "\n")] = 0; // Remove newline character
+
+    while (true) {
+        outbuf[0] = '\0';
+        errno = 0;
+        fflush(stdin);
+        
+        if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
+            if (feof(stdin)) {
+                // End of file reached
+                break;
+            }
+            fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
+            return EXIT_FAILURE;
+        }
+
+        if(outbuf[MAX_MSG_LEN] != '\0'){
+            printf("Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
+            // Consume remaining characters
+            return EXIT_FAILURE;
+        
+            int c;
+            while ((c = getchar()) != '\n' && c != EOF);
+            continue;
+            
+        }
+
+        outbuf[strlen(outbuf) - 1] = '\n';
+        int msg_size;
+        if ((msg_size = send(client_socket, outbuf, strlen(outbuf), 0)) < 0){
+            fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
+            return EXIT_FAILURE;
+        }
+
+        if(strcmp(outbuf, "bye") == 0){
+            printf("Goodbye.\n");
+            close(client_socket);
+            exit(EXIT_SUCCESS);
+            return 2;
+        }
+    }
+
+    return EXIT_SUCCESS;
+    **/
+    return EXIT_SUCCESS;
 }
+
 /*Part 4.2*/
 int handle_client_socket() {
     int bytes_read, arg_len;
@@ -147,6 +205,10 @@ int handle_client_socket() {
     if ((bytes_read = recv(client_socket, inbuf, sizeof(inbuf), 0)) < 0){
         fprintf(stderr, "Error: Failed to receive welcome message %s.\n", strerror(errno));
         return EXIT_FAILURE;
+    }else if(bytes_read < 0){
+    	if(errno != EINTR) {
+        	fprintf(stderr, "Warning: Failed to receive incoming message. %s.\n", strerror(errno));
+        }
     }else if(bytes_read == 0) {
         fprintf(stderr, "Error: Server closed the connection %s.\n", strerror(errno));
         return EXIT_FAILURE;
@@ -157,48 +219,13 @@ int handle_client_socket() {
 
         if (strcmp(inbuf, "bye\n") == 0) {
             printf("\nServer initiated shutdown.\n");
-            return 2;//Sends the main program straight to END: EXIT_SUCESS
-        }
-    
-    }
-    return EXIT_SUCCESS;
-    
-    
-    //printf("Inside socket connections\n");
-
-    // accept the incoming connection
-    /*
-    int acc = accept(client_socket, NULL, NULL);
-    if (acc < 0) {
-    	fprintf(stderr, "Error: Unable to accept the incoming connection. %s.\n", strerror(errno));
-    	return EXIT_FAILURE;
-    }
-
-    //read the data into inbuf
-    inbuf[0] = '\0'; //clear out inbuf
-    ssize_t num_bytes = read(acc, inbuf, sizeof(inbuf));
-    if (num_bytes < 0 && errno != EINTR) {
-        fprintf(stderr, "Warning: Failed to receive incoming message.\n");
-    } else if (num_bytes == 0) {
-        fprintf(stderr, "\nConnection to server has been lost.\n");
-        return EXIT_FAILURE;
-    } else {
-        // print the message from the server
-        inbuf[num_bytes] = '\0';
-        printf("Received message: %s\n", inbuf);
-
-        // check for the "bye" message
-        if (strcmp(inbuf, "bye\n") == 0) {
-            printf("\nServer initiated shutdown.\n");
             close(client_socket);
             exit(EXIT_SUCCESS);
+            //return 2;//Sends the main program straight to END: EXIT_SUCESS
         }
-    }
-    // close the connection
-    close(acc);
     
+    }
     return EXIT_SUCCESS;
-    */
 }
 
 int main(int argc, char **argv) {
@@ -312,6 +339,7 @@ int main(int argc, char **argv) {
     	
     	printf("[%s]:", username);
     	fflush(stdout); //makes sure it prints since theres no newline
+    	
     	//check for initial errors on both
     	if (select(FD_SETSIZE, &readfds, NULL, NULL, NULL) < 0) {
             fprintf(stderr,"Error: select() failed. %s.\n", strerror(errno));
@@ -325,6 +353,12 @@ int main(int argc, char **argv) {
         		retval = EXIT_FAILURE;
         		goto END;
         	}
+        	/*
+        	else if(retval == 2){
+        	retval = EXIT_SUCCESS;
+                goto END;
+                }
+                */
         }
         printf("\n----------MADE IT: 1----------\n");
         //activity on the socket
@@ -333,17 +367,21 @@ int main(int argc, char **argv) {
         	if((retval = handle_client_socket()) == EXIT_FAILURE){
         		retval = EXIT_FAILURE;
         		goto END;
-        	}else if(retval == 2){
+        	}
+        	/*
+        	else if(retval == 2){
+        	retval = EXIT_SUCCESS;
                 goto END;
-            }
+                }
+                */
         }
-        flush(client_socket);
+        //fflush(client_socket);
         printf("\n----------MADE IT: 2----------\n");
     	
     }
     
 END:
-    if (fcntl(client_socket, F_GETFD) != -1) {
+    if (fcntl(client_socket, F_GETFD) != -1) { //this only is activated if theres a Ctrl+D
         close(client_socket);
     }
     return retval;   
