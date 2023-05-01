@@ -39,7 +39,7 @@ int handle_stdin() {
         //is_true_eof = false;
         outbuf[0] = '\0';
         errno = 0;
-        fflush(stdin);
+        //fflush(stdin);
         //Fgets doesent work this way.
         
         //Need to use strchr to replace the newline with the a null terminator ''\0
@@ -55,14 +55,14 @@ int handle_stdin() {
         }
         *newline = '\0';
         //outbuf[strlen(outbuf) - 1] = '\n';
-        //printf("Message: %s\n", outbuf);
+        printf("Message: %s\n", outbuf);
         //outbuf[i++] = '\0';
         //fflush(stdin);
         int msg_size;
-        if ((msg_size = send(client_socket, outbuf, strlen(outbuf), 0)) < 0){
+        if ((msg_size = send(client_socket, outbuf, strlen(outbuf)+1 , 0)) < 0){
             fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
         }
-        //printf("Message Size: %d\n", msg_size);
+        printf("Message Size: %d\n", msg_size);
         if(strcmp(outbuf, "bye") == 0){
             printf("Goodbye.\n");
             return 2;
@@ -318,13 +318,15 @@ int main(int argc, char **argv) {
     	fflush(stdout); //makes sure it prints since theres no newline
     	//check for initial errors on both
     	if (select(client_socket + 1, &readfds, NULL, NULL, NULL) < 0) { // Client socekt + 1
-            fprintf(stderr,"Error: select() failed. %s.\n", strerror(errno));
+           
+	    fprintf(stderr,"Error: select() failed. %s.\n", strerror(errno));
             retval = EXIT_FAILURE;
             goto END;
         }
         
         //activity on STDIN_FILENO
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
+		printf("FD is set\n");
         	if(handle_stdin() == EXIT_FAILURE){
         		retval = EXIT_FAILURE;
         		goto END;
@@ -341,7 +343,7 @@ int main(int argc, char **argv) {
                 goto END;
             }
         }
-        fflush(client_socket);
+       // fflush(client_socket);
         printf("\n----------MADE IT: 2----------\n");
     	
     }
