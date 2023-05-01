@@ -23,6 +23,7 @@ char outbuf[MAX_MSG_LEN + 1];
 
 /*Part 4.1*/
 int handle_stdin() {
+   
     outbuf[MAX_MSG_LEN] = '\0';
     outbuf[0] = '\0';
     errno = 0;
@@ -32,6 +33,7 @@ int handle_stdin() {
         fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
         return EXIT_FAILURE;
     }
+    
     char * newline = NULL;
     if((newline = strchr(outbuf, '\n')) == NULL){//Checks to see if a new line was read, if not then the message was too long
         printf("Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
@@ -51,6 +53,7 @@ int handle_stdin() {
         printf("Goodbye.\n");
         return 2;
     }
+    
     return EXIT_SUCCESS;
 }
 
@@ -165,16 +168,15 @@ int main(int argc, char **argv) {
     }
     inbuf[BUFLEN] = '\0';
     printf("\n%s\n\n", inbuf);
-
-    if (send(client_socket, username, sizeof(username) + 1, 0) < 0){
+    
+    
+    username[strlen(username)] = '\0'; //null terminate username
+    
+    if (send(client_socket, username, strlen(username) + 1, 0) < 0){
         fprintf(stderr, "Error: Username failed to send %s.\n", strerror(errno));
         retval = EXIT_FAILURE;
         goto END;
     }
-    
-    
-    //printf("[%s]:", username); //initial print
-    //fflush(stdout); //makes sure it prints since theres no newline
     
     //setting up the fd set
     
@@ -186,9 +188,8 @@ int main(int argc, char **argv) {
     	FD_SET(STDIN_FILENO, &readfds);
     	
     	printf("[%s]:", username);
-    		fflush(stdout);
+    	fflush(stdout);
     	
-    	//fflush(stdout); //makes sure it prints since theres no newline
     	//check for initial errors on both
     	if (select(client_socket + 1, &readfds, NULL, NULL, NULL) < 0) { // Client socekt + 1
            
@@ -199,8 +200,7 @@ int main(int argc, char **argv) {
         
         //activity on STDIN_FILENO
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
-		    //printf("FD is set\n");
-		
+		    //printf("FD is set\n");	
         	if(handle_stdin() == EXIT_FAILURE){
         		retval = EXIT_FAILURE;
         		goto END;
