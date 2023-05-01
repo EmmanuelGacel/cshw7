@@ -19,130 +19,40 @@ char inbuf[BUFLEN + 1];
 char outbuf[MAX_MSG_LEN + 1];
 
 
-/*
-volatile sig_atomic_t running = true;
 
-
-void catch_signal(int sig) {
-    running = false;
-    printf("/n");
-}
-*/
 
 /*Part 4.1*/
 int handle_stdin() {
     outbuf[MAX_MSG_LEN] = '\0';
-    while (true){
-        //int i = 0;
-        //char ch;
-        //bool is_true_eof;
-        //is_true_eof = false;
-        outbuf[0] = '\0';
-        errno = 0;
-        //fflush(stdin);
-        //Fgets doesent work this way.
-        
-        //Need to use strchr to replace the newline with the a null terminator ''\0
-        if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
-            fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
-            return EXIT_FAILURE;
-        }
-        char * newline = NULL;
-        if((newline = strchr(outbuf, '\n')) == NULL){
-            printf("Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
-            //Use a while loop to clean up the rest of the message
-            return EXIT_SUCCESS; //Because it is not a fatal error
-        }
-        *newline = '\0';
-        //outbuf[strlen(outbuf) - 1] = '\n';
-        printf("Message: %s\n", outbuf);
-        //outbuf[i++] = '\0';
-        //fflush(stdin);
-        int msg_size;
-        if ((msg_size = send(client_socket, outbuf, strlen(outbuf)+1 , 0)) < 0){
-            fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
-        }
-        printf("Message Size: %d\n", msg_size);
-        if(strcmp(outbuf, "bye") == 0){
-            printf("Goodbye.\n");
-            return 2;
-        }
-        return EXIT_SUCCESS;
-/*
-        while((ch = getc(stdin) != '\n') && (i < MAX_MSG_LEN)){
-             printf("Character: %c\n", ch);
-             printf("Decimal: %d\n", ch);
-            if (errno == EINTR) {
-                printf("\n");
-                return EXIT_FAILURE;
-            } else if (ch == EOF) {
-                if (isatty(STDIN_FILENO)) {
-                    // This code handles CTRL+D from a terminal.
-                    if (strlen(outbuf) == 0) {
-                        printf("\n");
-                        return EXIT_SUCCESS;
-                    } else {
-                        clearerr(stdin);
-                        continue;
-                    }
-                } else {
-                    // This code handles EOF when STDIN is redirected.
-                    //is_true_eof = true;
-                    break;
-                }
-            } else {
-               outbuf[i++] = ch;
-            }
-        }
-        */
-    }
-
-/*
-    char message[MAX_MSG_LEN];
-    memset(message, 0, MAX_MSG_LEN);
-
-    // read input from the user
-    if (fgets(message, MAX_MSG_LEN, stdin) == NULL) {
+    outbuf[0] = '\0';
+    errno = 0;
+    
+    if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
         fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
         return EXIT_FAILURE;
     }
-
-    // remove the newline
-    
-    int len = strlen(message);
-   
-   
-    if (message[len - 1] == '\n') {
-        message[len - 1] = '\0';
+    char * newline = NULL;
+    if((newline = strchr(outbuf, '\n')) == NULL){//Checks to see if a new line was read, if not then the message was too long
+        printf("Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
+        char ch = getc(stdin);
+        while((ch != '\n') && (ch != EOF)) ch = getc(stdin);//Consumes unread characters
+        return EXIT_SUCCESS; //Because it is not a fatal error
     }
+    *newline = '\0';//Replaces newline with null terminator
     
-    // check if message is too long
-    if (len >= MAX_MSG_LEN) {
-        fprintf(stderr, "Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
-        // discard the rest of the characters
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF) {}
-    } else {
-        printf("\n----------MADE IT: 1----------\n");
-        // send the message to the server
-        printf("Message: %s\n", message);
-        int ret = send(client_socket, message, strlen(message), 0);
-        if (ret == -1) {
-            fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
-        }
-        printf("\n----------MADE IT: 2----------\n");
-        // check if the user wants to quit
-        if (strcmp(message, "bye") == 0) {
-            printf("Goodbye.\n");
-            close(client_socket);
-            exit(EXIT_SUCCESS);
-        }
-        //fflush(stdout); //make sure the server prints it
+    //printf("Message: %s\n", outbuf);
+    int msg_size;
+    if ((msg_size = send(client_socket, outbuf, strlen(outbuf)+1 , 0)) < 0){
+        fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
     }
-    printf("\n----------MADE IT: 3----------\n");
+    //printf("Message Size: %d\n", msg_size);
+    if(strcmp(outbuf, "bye") == 0){
+        printf("Goodbye.\n");
+        return 2;
+    }
     return EXIT_SUCCESS;
-    */
 }
+
 /*Part 4.2*/
 int handle_client_socket() {
     int bytes_read, arg_len;
@@ -166,43 +76,6 @@ int handle_client_socket() {
     
     }
     return EXIT_SUCCESS;
-    
-    
-    //printf("Inside socket connections\n");
-
-    // accept the incoming connection
-    /*
-    int acc = accept(client_socket, NULL, NULL);
-    if (acc < 0) {
-    	fprintf(stderr, "Error: Unable to accept the incoming connection. %s.\n", strerror(errno));
-    	return EXIT_FAILURE;
-    }
-
-    //read the data into inbuf
-    inbuf[0] = '\0'; //clear out inbuf
-    ssize_t num_bytes = read(acc, inbuf, sizeof(inbuf));
-    if (num_bytes < 0 && errno != EINTR) {
-        fprintf(stderr, "Warning: Failed to receive incoming message.\n");
-    } else if (num_bytes == 0) {
-        fprintf(stderr, "\nConnection to server has been lost.\n");
-        return EXIT_FAILURE;
-    } else {
-        // print the message from the server
-        inbuf[num_bytes] = '\0';
-        printf("Received message: %s\n", inbuf);
-
-        // check for the "bye" message
-        if (strcmp(inbuf, "bye\n") == 0) {
-            printf("\nServer initiated shutdown.\n");
-            close(client_socket);
-            exit(EXIT_SUCCESS);
-        }
-    }
-    // close the connection
-    close(acc);
-    
-    return EXIT_SUCCESS;
-    */
 }
 
 int main(int argc, char **argv) {
@@ -213,16 +86,7 @@ int main(int argc, char **argv) {
         goto END;
     }
     
-    /**
-    struct sigaction action;
-    memset(&action, 0, sizeof(struct sigaction));
-    action.sa_handler = catch_signal;
-    if (sigaction(SIGINT, &action, NULL) == -1) {
-        fprintf(stderr, "Error: Failed to register signal handler. %s.\n",
-                strerror(errno));
-        return EXIT_FAILURE;
-    }
-    */
+    
     
     struct sockaddr_in server_addr;
     socklen_t addrlen = sizeof(struct sockaddr_in); //New type
@@ -326,13 +190,12 @@ int main(int argc, char **argv) {
         
         //activity on STDIN_FILENO
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
-		printf("FD is set\n");
+		    //printf("FD is set\n");
         	if(handle_stdin() == EXIT_FAILURE){
         		retval = EXIT_FAILURE;
         		goto END;
         	}
         }
-        printf("\n----------MADE IT: 1----------\n");
         //activity on the socket
         if (FD_ISSET(client_socket, &readfds)) {
             int retval; 
@@ -343,8 +206,6 @@ int main(int argc, char **argv) {
                 goto END;
             }
         }
-       // fflush(client_socket);
-        printf("\n----------MADE IT: 2----------\n");
     	
     }
     
