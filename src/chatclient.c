@@ -31,7 +31,56 @@ void catch_signal(int sig) {
 
 /*Part 4.1*/
 int handle_stdin() {
-/**
+
+/**	
+    char buf[MAX_MSG_LEN + 1];
+    if (fgets(username, MAX_NAME_LEN + 1, stdin) == NULL) {
+        fprintf(stderr, "Error reading username from stdin: %s\n", strerror(errno));
+        return EXIT_FAILURE;
+    }
+
+    // Remove newline character from username
+    username[strcspn(username, "\n")] = '\0';
+
+    while (fgets(buf, MAX_MSG_LEN + 1, stdin) != NULL) {
+        // Remove newline character from message
+        buf[strcspn(buf, "\n")] = '\0';
+
+        // Check if message is too long
+        if (strlen(buf) == MAX_MSG_LEN && !feof(stdin)) {
+            fprintf(stderr, "Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
+            while (fgets(buf, MAX_MSG_LEN + 1, stdin) != NULL && buf[strlen(buf) - 1] != '\n') {
+                continue;
+            }
+            continue;
+        }
+
+        // Copy message to outbuf
+        strncpy(outbuf, buf, MAX_MSG_LEN);
+
+        // Send message to server
+        if (send(client_socket, outbuf, strlen(outbuf), 0) < 0) {
+            fprintf(stderr, "Error sending message to server: %s\n", strerror(errno));
+            return EXIT_FAILURE;
+        }
+
+        // Check if message is "bye"
+        if (strcmp(buf, "bye") == 0) {
+            printf("Goodbye.\n");
+            close(client_socket);
+            exit(EXIT_SUCCESS);
+        }
+
+        // Check for errors in stdin
+        if (ferror(stdin)) {
+            fprintf(stderr, "Error reading from stdin: %s\n", strerror(errno));
+            return EXIT_FAILURE;
+        }
+    }
+
+    // End of file reached on stdin, exit gracefully
+    return EXIT_SUCCESS;
+
     outbuf[MAX_MSG_LEN] = '\0';
     while (true){
         //int i = 0;
@@ -93,23 +142,23 @@ int handle_stdin() {
         return EXIT_SUCCESS;
 
     }
-
-    char message[MAX_MSG_LEN];
-    memset(message, 0, MAX_MSG_LEN);
+ **/
+    //char message[MAX_MSG_LEN + 1]; //SUB FOR OUTBUF
+    memset(outbuf, 0, MAX_MSG_LEN);
 
     // read input from the user
-    if (fgets(message, MAX_MSG_LEN, stdin) == NULL) {
+    if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
         fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
         return EXIT_FAILURE;
     }
 
     // remove the newline
     
-    int len = strlen(message);
+    int len = strlen(outbuf);
    
    
-    if (message[len - 1] == '\n') {
-        message[len - 1] = '\0';
+    if (outbuf[len - 1] == '\n') {
+        outbuf[len - 1] = '\0';
     }
     
     // check if message is too long
@@ -119,27 +168,27 @@ int handle_stdin() {
         int c;
         while ((c = getchar()) != '\n' && c != EOF) {}
     } else {
-        printf("\n----------MADE IT: 1----------\n");
+        //printf("\n----------MADE IT: 1----------\n");
         // send the message to the server
-        printf("Message: %s\n", message);
-        int ret = send(client_socket, message, strlen(message), 0);
+        //printf("Message: %s\n", message);
+        int ret = send(client_socket, outbuf, strlen(outbuf), 0);
         if (ret == -1) {
             fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
         }
-        printf("\n----------MADE IT: 2----------\n");
+        //printf("\n----------MADE IT: 2----------\n");
         // check if the user wants to quit
-        if (strcmp(message, "bye") == 0) {
+        if (strcmp(outbuf, "bye") == 0) {
             printf("Goodbye.\n");
             close(client_socket);
             exit(EXIT_SUCCESS);
         }
         //fflush(stdout); //make sure the server prints it
     }
-    printf("\n----------MADE IT: 3----------\n");
+    //printf("\n----------MADE IT: 3----------\n");
     return EXIT_SUCCESS;
 
     
-    
+    /**
     outbuf[MAX_MSG_LEN] = '\0';
     //int first_line = 1;
     char username[MAX_NAME_LEN + 1];
@@ -194,7 +243,6 @@ int handle_stdin() {
 
     return EXIT_SUCCESS;
     **/
-    return EXIT_SUCCESS;
 }
 
 /*Part 4.2*/
@@ -202,13 +250,10 @@ int handle_client_socket() {
     int bytes_read, arg_len;
     arg_len = sizeof(client_socket);
     arg_len ++;
-    if ((bytes_read = recv(client_socket, inbuf, sizeof(inbuf), 0)) < 0){
+    
+    if ((bytes_read = recv(client_socket, inbuf, sizeof(inbuf), 0)) < 0){ //receive messages into inbuf
         fprintf(stderr, "Error: Failed to receive welcome message %s.\n", strerror(errno));
         return EXIT_FAILURE;
-    }else if(bytes_read < 0){
-    	if(errno != EINTR) {
-        	fprintf(stderr, "Warning: Failed to receive incoming message. %s.\n", strerror(errno));
-        }
     }else if(bytes_read == 0) {
         fprintf(stderr, "Error: Server closed the connection %s.\n", strerror(errno));
         return EXIT_FAILURE;
@@ -331,6 +376,8 @@ int main(int argc, char **argv) {
     //setting up the fd set
     
     fd_set readfds;
+    
+    
     while (1){
     	
     	FD_ZERO(&readfds);
@@ -360,7 +407,7 @@ int main(int argc, char **argv) {
                 }
                 */
         }
-        printf("\n----------MADE IT: 1----------\n");
+        //printf("\n----------MADE IT: 1----------\n");
         //activity on the socket
         if (FD_ISSET(client_socket, &readfds)) {
             int retval; 
@@ -376,7 +423,7 @@ int main(int argc, char **argv) {
                 */
         }
         //fflush(client_socket);
-        printf("\n----------MADE IT: 2----------\n");
+        //printf("\n----------MADE IT: 2----------\n");
     	
     }
     
