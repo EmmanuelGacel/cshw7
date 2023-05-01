@@ -27,6 +27,7 @@ int handle_stdin() {
     outbuf[0] = '\0';
     errno = 0;
     
+    
     if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
         fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
         return EXIT_FAILURE;
@@ -65,15 +66,15 @@ int handle_client_socket() {
         fprintf(stderr, "Error: Server closed the connection %s.\n", strerror(errno));
         return EXIT_FAILURE;
     }else{
-        inbuf[sizeof(inbuf) - 1] = '\0';
-
-        printf("Received message: %s\n", inbuf);
+        inbuf[bytes_read + 1] = '\0'; //(vs sizeof(infbuf)  - 1)
+	
+        printf("\n%s\n", inbuf); //PRINTS THE RECIEVED MESSAGE
+        fflush(stdout);
 
         if (strcmp(inbuf, "bye\n") == 0) {
             printf("\nServer initiated shutdown.\n");
             return 2;//Sends the main program straight to END: EXIT_SUCESS
         }
-    
     }
     return EXIT_SUCCESS;
 }
@@ -143,6 +144,7 @@ int main(int argc, char **argv) {
         retval = EXIT_FAILURE;
         goto END;
     }
+    
     int flag = 1;
     int result = setsockopt(client_socket, IPPROTO_TCP, TCP_NODELAY, (char *)&flag, sizeof(int));
     if (result < 0) {
@@ -150,6 +152,7 @@ int main(int argc, char **argv) {
         close(client_socket);
         exit(EXIT_FAILURE);
     }
+    
     int bytes_read;
     if ((bytes_read = recv(client_socket, inbuf, (sizeof(inbuf) - 1), 0)) < 0){
         fprintf(stderr, "Error: Failed to receive welcome message %s.\n", strerror(errno));
@@ -163,11 +166,15 @@ int main(int argc, char **argv) {
     inbuf[BUFLEN] = '\0';
     printf("\n%s\n\n", inbuf);
 
-    if (send(client_socket, username, sizeof(username), 0) < 0){
+    if (send(client_socket, username, sizeof(username) + 1, 0) < 0){
         fprintf(stderr, "Error: Username failed to send %s.\n", strerror(errno));
         retval = EXIT_FAILURE;
         goto END;
     }
+    
+    
+    //printf("[%s]:", username); //initial print
+    //fflush(stdout); //makes sure it prints since theres no newline
     
     //setting up the fd set
     
@@ -179,7 +186,9 @@ int main(int argc, char **argv) {
     	FD_SET(STDIN_FILENO, &readfds);
     	
     	printf("[%s]:", username);
-    	fflush(stdout); //makes sure it prints since theres no newline
+    		fflush(stdout);
+    	
+    	//fflush(stdout); //makes sure it prints since theres no newline
     	//check for initial errors on both
     	if (select(client_socket + 1, &readfds, NULL, NULL, NULL) < 0) { // Client socekt + 1
            
@@ -191,6 +200,7 @@ int main(int argc, char **argv) {
         //activity on STDIN_FILENO
         if (FD_ISSET(STDIN_FILENO, &readfds)) {
 		    //printf("FD is set\n");
+		
         	if(handle_stdin() == EXIT_FAILURE){
         		retval = EXIT_FAILURE;
         		goto END;
