@@ -79,8 +79,8 @@ void create_welcome_msg() {
     strcat(outbuf, "*** Welcome to AP Chat Server v1.0 ***");
     if (num_connections == 0) {
         strcat(outbuf, "\n\nNo other users are in the chat room.");
-        return;
     }
+    else{
     char *names[MAX_CONNECTIONS];
     int j = 0;
     for (int i = 0; i < MAX_CONNECTIONS; i++) {
@@ -96,6 +96,7 @@ void create_welcome_msg() {
         strcat(outbuf, names[i]);
     }
     strcat(outbuf, "]");
+    }
 }
 
 /**
