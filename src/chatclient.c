@@ -23,13 +23,13 @@ char outbuf[MAX_MSG_LEN + 1];
 
 /*Part 4.1*/
 int handle_stdin() {
-   
     outbuf[MAX_MSG_LEN] = '\0';
     outbuf[0] = '\0';
     errno = 0;
     
-    
     if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
+        if(feof(stdin)) return 2;
+        printf("Message: %s\n", outbuf);
         fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
         return EXIT_FAILURE;
     }
@@ -42,21 +42,19 @@ int handle_stdin() {
         return EXIT_SUCCESS; //Because it is not a fatal error
     }
     *newline = '\0';//Replaces newline with null terminator
-    
     //printf("Message: %s\n", outbuf);
     int msg_size;
     if ((msg_size = send(client_socket, outbuf, strlen(outbuf)+1 , 0)) < 0){
         fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
     }
+    //printf("Message: %s\n", outbuf);
     //printf("Message Size: %d\n", msg_size);
     if(strcmp(outbuf, "bye") == 0){
         printf("Goodbye.\n");
         return 2;
     }
-    
     return EXIT_SUCCESS;
 }
-
 /*Part 4.2*/
 int handle_client_socket() {
     int bytes_read, arg_len;
@@ -89,7 +87,7 @@ int main(int argc, char **argv) {
         retval = EXIT_FAILURE;
         goto END;
     }
-    
+    char new_buf[MAX_NAME_LEN + 2];
     
     
     struct sockaddr_in server_addr;
@@ -106,7 +104,6 @@ int main(int argc, char **argv) {
         retval = EXIT_FAILURE;
         goto END;
     }
-
     memset(&server_addr, 0, addrlen);
 
     server_addr.sin_family = AF_INET;
@@ -117,18 +114,35 @@ int main(int argc, char **argv) {
     while (1){//Ask user for username
     
     	printf("Please enter a username: ");
+        
     	fflush(stdout); //makes sure its displayed before the read since theres no newline
-   	if (read(STDIN_FILENO, &username, sizeof(username) - 1) < 0) {
+   	    if (fgets(new_buf, MAX_NAME_LEN + 2, stdin) == NULL) {
         	fprintf(stderr, "Error: Failed to read user input.\n");
         	retval = EXIT_FAILURE;
         	goto END;
-   	} else if (strlen(username) > MAX_NAME_LEN) {
-        	fprintf(stderr, "Sorry, limit your username to %d characters.\n", MAX_NAME_LEN);
-        	continue; //ask for another username
-    	} else if (strlen(username) < 1) {
-        	fprintf(stderr, "Sorry, your username is too short.\n");
-        	continue; //ask for another username
-    	} 
+        } 
+        char * newline = NULL;
+
+        //for(int i = 0; i < MAX_NAME_LEN; i++){
+            //printf("Index: %d; Decimal: %d; Char: %c\n",i, new_buf[i], new_buf[i]);
+        //}
+        if (strlen(new_buf) < 1) {
+            fprintf(stderr, "Sorry, your username is too short.\n");
+            continue; //ask for another username
+        }else if ((newline = strchr(new_buf, '\n')) == NULL) {
+            char ch = getc(stdin);
+            while((ch != '\n') && (ch != EOF)) ch = getc(stdin);//Consumes unread characters
+            printf("stdin: %d\n", feof(stdin));
+            fprintf(stderr, "Sorry, limit your username to %d characters.\n", MAX_NAME_LEN);
+            continue; //ask for another username
+        }
+        *newline = '\0';
+        strcpy(username, new_buf);
+        
+        //printf("Username %c\n", username[19]);
+        //printf("Max name len %d\n", MAX_NAME_LEN);
+        //printf("Username %c\n", username[MAX_NAME_LEN]);
+        //printf("Next character %c\n", getc(stdin));
         break;
     }
     char *eoln = strchr(username, '\n'); //fixed bug, usernames contained newlines
@@ -199,20 +213,22 @@ int main(int argc, char **argv) {
         }
         
         //activity on STDIN_FILENO
-        if (FD_ISSET(STDIN_FILENO, &readfds)) {
-		    //printf("FD is set\n");	
-        	if(handle_stdin() == EXIT_FAILURE){
+        if (FD_ISSET(STDIN_FILENO, &readfds)) {	
+        	int messageval = handle_stdin();
+        	if(messageval  == EXIT_FAILURE){
         		retval = EXIT_FAILURE;
         		goto END;
-        	}
+        	}else if(messageval == 2){
+                goto END;
+            }
         }
         //activity on the socket
         if (FD_ISSET(client_socket, &readfds)) {
-            int retval; 
-        	if((retval = handle_client_socket()) == EXIT_FAILURE){
+            int messageval = handle_client_socket();
+        	if(messageval  == EXIT_FAILURE){
         		retval = EXIT_FAILURE;
         		goto END;
-        	}else if(retval == 2){
+        	}else if(messageval == 2){
                 goto END;
             }
         }
