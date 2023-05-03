@@ -16,26 +16,28 @@ int ip_conversion;
 int retval = EXIT_SUCCESS;
 char username[MAX_NAME_LEN + 1];
 char inbuf[BUFLEN + 1];
-char outbuf[MAX_MSG_LEN + 1];
-
+char outbuf[MAX_MSG_LEN + 1]; //can hold the newline and null terminator
 
 
 
 /*Part 4.1*/
 int handle_stdin() {
-    outbuf[MAX_MSG_LEN] = '\0';
+    outbuf[MAX_MSG_LEN + 1] = '\0'; 
     outbuf[0] = '\0';
     errno = 0;
     
-    if (fgets(outbuf, MAX_MSG_LEN, stdin) == NULL) {
+    char temp_buf[MAX_MSG_LEN + 2]; //has space for newline and terminator
+    
+    if (fgets(temp_buf, sizeof(temp_buf), stdin) == NULL) {
         if(feof(stdin)) return 2;
-        printf("Message: %s\n", outbuf);
+        printf("Message: %s\n", temp_buf);
         fprintf(stderr, "Error: Read interrupted. %s. \n", strerror(errno));
         return EXIT_FAILURE;
     }
     
+    //printf("TEMP SIZE: %ld\n", strlen(temp_buf));
     char * newline = NULL;
-    if((newline = strchr(outbuf, '\n')) == NULL){//Checks to see if a new line was read, if not then the message was too long
+    if((newline = strchr(temp_buf, '\n')) == NULL){//Checks to see if a new line was read, if not then the message was too long
         printf("Sorry, limit your message to 1 line of at most %d characters.\n", MAX_MSG_LEN);
         char ch = getc(stdin);
         while((ch != '\n') && (ch != EOF)) ch = getc(stdin);//Consumes unread characters
@@ -43,6 +45,8 @@ int handle_stdin() {
     }
     *newline = '\0';//Replaces newline with null terminator
     //printf("Message: %s\n", outbuf);
+    strcpy(outbuf, temp_buf);
+    
     int msg_size;
     if ((msg_size = send(client_socket, outbuf, strlen(outbuf)+1 , 0)) < 0){
         fprintf(stderr, "Error: Message failed to send. %s.\n", strerror(errno));
