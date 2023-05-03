@@ -201,8 +201,11 @@ int main(int argc, char **argv) {
     	FD_SET(client_socket, &readfds);
     	FD_SET(STDIN_FILENO, &readfds);
     	
-    	printf("[%s]:", username);
-    	fflush(stdout);
+    	
+    	if (isatty(fileno(stdin))) { //only prints this when not reading from a file
+    		printf("[%s]:", username);
+   		fflush(stdout);
+	}
     	
     	//check for initial errors on both
     	if (select(client_socket + 1, &readfds, NULL, NULL, NULL) < 0) { // Client socekt + 1
