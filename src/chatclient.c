@@ -68,8 +68,8 @@ int handle_client_socket() {
         fprintf(stderr, "Error: Failed to receive welcome message %s.\n", strerror(errno));
         return EXIT_FAILURE;
     }else if(bytes_read == 0) {
-        fprintf(stderr, "Error: Server closed the connection %s.\n", strerror(errno));
-        return EXIT_FAILURE;
+        fprintf(stderr, "\nServer initiated shutdown %s.\n", strerror(errno));
+        return 2; //ON GIVEN EXECUTABLE, THIS IS A SUCCESS AFTER WELCOME MESSAGE IS RECIEVED
     }else{
         inbuf[bytes_read + 1] = '\0'; //(vs sizeof(infbuf)  - 1)
 	
