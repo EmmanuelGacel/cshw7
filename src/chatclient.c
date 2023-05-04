@@ -11,6 +11,7 @@
 #include <netinet/tcp.h>
 //AP server userID: Emmanuel: 1120 Katie: 1362
 //userID Equation: (1000 * x) + (120 OR 362)
+//completed version
 int client_socket = -1;
 int ip_conversion;
 int retval = EXIT_SUCCESS;
